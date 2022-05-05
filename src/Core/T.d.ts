@@ -96,17 +96,31 @@ declare const T: T & {
 		  never;
 };
 
-export type CompileType<T extends AnyTypeDefinition> = T["typeName"] extends firstOrder
-	? t.static<t[T["typeName"]]>
-	: T["typeName"] extends secondOrder
-	? T extends TypeDefinition<T["typeName"], infer R, []>
-		? T["typeName"] extends "strictInterface"
-			? Strict<R>
-			: T["typeName"] extends "strictArray"
-			? R extends AnyTypeDefinition
-				? Array<t.static<t[R["typeName"]]>>
-				: never
-			: never
+type ShouldShortCircuit<T extends string> = T extends firstOrder ? 1 : 0;
+
+type InterfaceStruct<a> = a extends TypeDefinition<"strictInterface", infer R, []>
+	? R extends { [index: string]: AnyTypeDefinition }
+		? { [K in keyof R]: CompileType<R[K]> }
+		: never
+	: never;
+
+type testStrictArray = CompileType<
+	TypeDefinition<"array", TypeDefinition<"strictInterface", { a: typeof T.number }, []>, []>
+>;
+
+type ArrayStruct<a> = a extends TypeDefinition<"array", infer R, []>
+	? R extends AnyTypeDefinition
+		? Array<CompileType<R>>
+		: never
+	: never;
+
+export type CompileType<a extends AnyTypeDefinition, T = a["typeName"]> = T extends a["typeName"]
+	? ShouldShortCircuit<T> extends 1
+		? t.static<t[T]>
+		: T extends "array"
+		? ArrayStruct<a>
+		: T extends "strictInterface"
+		? InterfaceStruct<a>
 		: never
 	: never;
 
@@ -114,15 +128,11 @@ type testStrictInterface = CompileType<
 	TypeDefinition<
 		"strictInterface",
 		{
-			foo: TypeDefinition<"CFrame", CFrame, never>;
+			foo: TypeDefinition<"number", number, never>;
 		},
 		[]
 	>
 >;
-
-type testStrictArray = CompileType<TypeDefinition<"strictArray", typeof T.CFrame, []>>;
-
-type Strict<T> = T extends { [index: string]: TypeDefinition<string, infer R, never> } ? { [K in keyof T]: R } : never;
 
 export default T;
 
