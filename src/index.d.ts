@@ -30,4 +30,7 @@ declare function getWorld<T extends Array<{ name: N; type: unknown }>, N extends
 	script?: LuaSourceContainer,
 ): World<T, N>;
 
-export { createWorld, getWorld };
+import Dom from "./Dom";
+import T from "./Core/T";
+
+export { createWorld, getWorld, Dom, T };
